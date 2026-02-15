@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>For Maram ❤️</title>
+<style>
+body {
+  margin:0;
+  font-family:Arial,sans-serif;
+  color:white;
+  overflow:hidden;
+  text-align:center;
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  top:0;
+  left:0;
+  width:100vw;
+  height:100vh;
+  background: url("yourphoto.jpeg") no-repeat center center;
+  background-size: cover;
+  filter: blur(18px) brightness(0.7);
+  z-index:-1;
+}
+
+#container {
+  margin-top:40px;
+  position:relative;
+  z-index:10;
+}
+
+#photo {
+  width:300px;
+  border-radius:25px;
+  box-shadow:0 0 35px rgba(255,0,120,0.7);
+  transition:0.5s;
+}
+
+button {
+  padding:12px 28px;
+  font-size:18px;
+  border:none;
+  border-radius:30px;
+  cursor:pointer;
+  margin:12px;
+}
+
+#yesBtn{background-color:hotpink;color:white;}
+#noBtn{background-color:gray;color:white;position:absolute;}
+
+#message{
+  display:none;
+  font-size:28px;
+  margin-top:25px;
+  color:pink;
+  font-weight:bold;
+  transition:1s;
+}
+
+.countdown{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  font-size:80px;
+  color:hotpink;
+  z-index:20;
+  display:none;
+}
+
+.heart {position:absolute;font-size:25px;animation:float 3s linear forwards;}
+@keyframes float {0%{transform:translateY(0);opacity:1;}100%{transform:translateY(-700px);opacity:0;}}
+
+#gameCanvas{
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  display:none;
+  z-index:5;
+  background:transparent;
+}
+#score{
+  position:absolute;
+  top:10px;
+  left:10px;
+  font-size:24px;
+  z-index:10;
+}
+</style>
+</head>
+<body>
+
+<div id="container">
+  <h1>Will You Forgive Me? ❤️</h1>
+  <img id="photo" src="yourphoto2.jpeg">
+  <br>
+  <button id="yesBtn">Yes ❤️</button>
+  <button id="noBtn">No 💔</button>
+
+  <div id="message">
+    حبيبتي ❤️<br>
+    أنا آسف . ما تخليش حبيبك يموت بقي
+  </div>
+</div>
+
+<div class="countdown" id="countdown">5</div>
+
+<audio id="music" src="love.mp3" loop></audio>
+
+<div id="score">💖 0</div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const yesBtn=document.getElementById("yesBtn");
+const noBtn=document.getElementById("noBtn");
+const photo=document.getElementById("photo");
+const message=document.getElementById("message");
+const music=document.getElementById("music");
+const scoreEl=document.getElementById("score");
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+const countdownEl=document.getElementById("countdown");
+
+let score=0;
+let gameRunning=false;
+
+// Canvas
+function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
+window.addEventListener("resize",resizeCanvas);
+resizeCanvas();
+
+// Flappy Bird variables
+let player={x:100,y:canvas.height/2,w:70,h:70,vy:0}; // حجم أكبر
+const gravity=0.6;
+const jump=-10;
+let pipes=[];
+const pipeWidth=80;
+const gapHeight=220; // فجوة أكبر → أسهل
+const pipeSpeed=2.5; // أعمدة أبطأ → أسهل
+let pipeInterval;
+
+// قلوب عند المرور
+function createHeart(x,y){
+  let heart=document.createElement("div");
+  heart.className="heart";
+  heart.innerHTML="❤️";
+  heart.style.left=x+"px";
+  heart.style.top=y+"px";
+  heart.style.fontSize=(20+Math.random()*20)+"px";
+  document.body.appendChild(heart);
+  setTimeout(()=>heart.remove(),3000);
+}
+
+// رسم
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // أعمدة
+  ctx.fillStyle="rgba(255,192,203,0.6)";
+  pipes.forEach(pipe=>{
+    ctx.fillRect(pipe.x,0,pipeWidth,pipe.topHeight);
+    ctx.fillRect(pipe.x,pipe.topHeight+gapHeight,pipeWidth,canvas.height-pipe.topHeight-gapHeight);
+  });
+
+  // الشخصية
+  const img=new Image();
+  img.src="yourphoto3.jpeg";
+  ctx.drawImage(img,player.x,player.y,player.w,player.h);
+}
+
+// تحديث
+function update(){
+  player.vy+=gravity;
+  player.y+=player.vy;
+
+  pipes.forEach(pipe=>{
+    pipe.x-=pipeSpeed;
+
+    if(!pipe.passed && player.x > pipe.x+pipeWidth){
+      pipe.passed=true;
+      score++;
+      scoreEl.innerHTML="💖 "+score;
+
+      // إنشاء قلب
+      createHeart(player.x+player.w/2,player.y+player.h/2);
+
+      // إنشاء كلمة "شطورة يا ميرو" فوق القلب
+      let msg=document.createElement("div");
+      msg.style.position="absolute";
+      msg.style.left=(player.x+player.w/2)+"px";
+      msg.style.top=(player.y-30)+"px";
+      msg.style.color="hotpink";
+      msg.style.fontWeight="bold";
+      msg.style.fontSize="24px";
+      msg.style.transform="translate(-50%,0)";
+      msg.textContent="شطورة يا ميرو";
+      document.body.appendChild(msg);
+      setTimeout(()=>msg.remove(),1500);
+    }
+
+    // تصادم مع الأعمدة فقط
+    if(player.x+player.w>pipe.x && player.x<pipe.x+pipeWidth &&
+       (player.y<pipe.topHeight || player.y+player.h>pipe.topHeight+gapHeight)){
+      gameOver();
+    }
+  });
+
+  // الحاجز السفلي يمنع السقوط
+  if(player.y+player.h>canvas.height){
+    player.y=canvas.height-player.h;
+    player.vy=0;
+  }
+
+  // السقف
+  if(player.y<0) player.y=0;
+
+  pipes=pipes.filter(p=>p.x+pipeWidth>0);
+}
+
+// Loop
+function gameLoop(){
+  if(!gameRunning) return;
+  draw();
+  update();
+  requestAnimationFrame(gameLoop);
+}
+
+// إنشاء أعمدة
+function addPipe(){
+  const topHeight=Math.random()*(canvas.height-gapHeight-200)+50;
+  pipes.push({x:canvas.width,topHeight:topHeight,passed:false});
+}
+
+// بدء العد التنازلي
+function startCountdown(){
+  countdownEl.style.display="block";
+  let count=5;
+  countdownEl.textContent=count;
+  const interval=setInterval(()=>{
+    count--;
+    if(count>=0){
+      countdownEl.textContent=count;
+    }
+    if(count<0){
+      clearInterval(interval);
+      countdownEl.style.display="none";
+      startFlappy();
+    }
+  },1000);
+}
+
+// بدء اللعبة بعد العد التنازلي
+function startFlappy(){
+  canvas.style.display="block";
+  gameRunning=true;
+  pipes=[];
+  score=0;
+  scoreEl.innerHTML="💖 0";
+  player.y=canvas.height/2;
+  player.vy=0;
+
+  music.currentTime=0;
+  music.play().catch(e=>console.log("Error:",e));
+
+  if(pipeInterval) clearInterval(pipeInterval);
+  pipeInterval=setInterval(addPipe,2000);
+  gameLoop();
+}
+
+// نهاية اللعبة وإعادة التشغيل مباشرة
+function gameOver(){
+  gameRunning=false;
+  pipes=[];
+  player.y=canvas.height/2;
+  player.vy=0;
+  score=0;
+  scoreEl.innerHTML="💖 0";
+  setTimeout(startFlappy,500);
+}
+
+// الضغط على المسطرة أو الماوس للقفز
+document.addEventListener("keydown",(e)=>{
+  if(e.code==="Space" && gameRunning){
+    player.vy=jump;
+  }
+});
+canvas.addEventListener("mousedown",()=>{
+  if(gameRunning){
+    player.vy=jump;
+  }
+});
+
+// الضغط على Yes
+yesBtn.addEventListener("click",()=>{
+  yesBtn.style.display="none";
+  noBtn.style.display="none";
+
+  // تغيير الصورة وتصغيرها
+  photo.src="yourphoto.jpeg";
+  photo.style.width="150px"; // حجم أصغر
+  photo.style.transform="scale(1)";
+
+  message.style.display="block";
+  startCountdown();
+});
+
+// حركة زرار No
+noBtn.addEventListener("mouseover", () => {
+  const x = Math.random() * (window.innerWidth - 120);
+  const y = Math.random() * (window.innerHeight - 60);
+  noBtn.style.left = x + "px";
+  noBtn.style.top = y + "px";
+});
+</script>
+
+</body>
+</html>
